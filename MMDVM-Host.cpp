@@ -16,7 +16,7 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include "MMDVMHost.h"
+#include "MMDVM-Host.h"
 #include "NXDNKenwoodNetwork.h"
 #include "NXDNIcomNetwork.h"
 #include "RSSIInterpolator.h"
@@ -51,9 +51,9 @@
 #endif
 
 #if defined(_WIN32) || defined(_WIN64)
-const char* DEFAULT_INI_FILE = "MMDVMHost.ini";
+const char* DEFAULT_INI_FILE = "MMDVM-Host.ini";
 #else
-const char* DEFAULT_INI_FILE = "/etc/MMDVMHost.ini";
+const char* DEFAULT_INI_FILE = "/etc/MMDVM-Host.ini";
 #endif
 
 static bool m_killed = false;
@@ -85,10 +85,10 @@ int main(int argc, char** argv)
  		for (int currentArg = 1; currentArg < argc; ++currentArg) {
 			std::string arg = argv[currentArg];
 			if ((arg == "-v") || (arg == "--version")) {
-				::fprintf(stdout, "MMDVMHost version %s git #%.7s\n", VERSION, gitversion);
+				::fprintf(stdout, "MMDVM-Host version %s git #%.7s\n", VERSION, gitversion);
 				return 0;
 			} else if (arg.substr(0,1) == "-") {
-				::fprintf(stderr, "Usage: MMDVMHost [-v|--version] [filename]\n");
+				::fprintf(stderr, "Usage: MMDVM-Host [-v|--version] [filename]\n");
 				return 1;
 			} else {
 				iniFile = argv[currentArg];
@@ -118,17 +118,17 @@ int main(int argc, char** argv)
 			case 0:
 				break;
 			case 2:
-				::LogInfo("MMDVMHost-%s exited on receipt of SIGINT", VERSION);
+				::LogInfo("MMDVM-Host-%s exited on receipt of SIGINT", VERSION);
 				break;
 			case 15:
-				::LogInfo("MMDVMHost-%s exited on receipt of SIGTERM", VERSION);
+				::LogInfo("MMDVM-Host-%s exited on receipt of SIGTERM", VERSION);
 				break;
 			case 1:
-				::LogInfo("MMDVMHost-%s is restarting on receipt of SIGHUP", VERSION);
+				::LogInfo("MMDVM-Host-%s is restarting on receipt of SIGHUP", VERSION);
 				m_reload = true;
 				break;
 			default:
-				::LogInfo("MMDVMHost-%s exited on receipt of an unknown signal", VERSION);
+				::LogInfo("MMDVM-Host-%s exited on receipt of an unknown signal", VERSION);
 				break;
 		}
 	} while (m_reload || (m_signal == 1));
@@ -272,7 +272,7 @@ int CMMDVMHost::run()
 {
 	bool ret = m_conf.read();
 	if (!ret) {
-		::fprintf(stderr, "MMDVMHost: cannot read the .ini file\n");
+		::fprintf(stderr, "MMDVM-Host: cannot read the .ini file\n");
 		return 1;
 	}
 
@@ -346,7 +346,7 @@ int CMMDVMHost::run()
 	m_mqtt = new CMQTTConnection(m_conf.getMQTTHost(), m_conf.getMQTTPort(), m_conf.getMQTTName(), m_conf.getMQTTAuthEnabled(), m_conf.getMQTTUsername(), m_conf.getMQTTPassword(), subscriptions, m_conf.getMQTTKeepalive());
 	ret = m_mqtt->open();
 	if (!ret) {
-		::fprintf(stderr, "MMDVMHost: unable to start the MQTT Publisher\n");
+		::fprintf(stderr, "MMDVM-Host: unable to start the MQTT Publisher\n");
 		delete m_mqtt;
 		m_mqtt = nullptr;
 	}
@@ -363,10 +363,10 @@ int CMMDVMHost::run()
 	LogInfo(HEADER3);
 	LogInfo(HEADER4);
 
-	LogInfo("MMDVMHost-%s is starting", VERSION);
+	LogInfo("MMDVM-Host-%s is starting", VERSION);
 	LogInfo("Built %s %s (GitID #%.7s)", __TIME__, __DATE__, gitversion);
 
-	writeJSONMessage("MMDVMHost is starting");
+	writeJSONMessage("MMDVM-Host is starting");
 
 	readParams();
 
@@ -1366,8 +1366,8 @@ int CMMDVMHost::run()
 			CThread::sleep(5U);
 	}
 
-	LogInfo("MMDVMHost is stopping");
-	writeJSONMessage("MMDVMHost is stopping");
+	LogInfo("MMDVM-Host is stopping");
+	writeJSONMessage("MMDVM-Host is stopping");
 
 	setMode(MODE_QUIT);
 
@@ -1464,8 +1464,8 @@ int CMMDVMHost::run()
 	delete m_fm;
 #endif
 
-	LogInfo("MMDVMHost-%s has stopped", VERSION);
-	writeJSONMessage("MMDVMHost has stopped");
+	LogInfo("MMDVM-Host-%s has stopped", VERSION);
+	writeJSONMessage("MMDVM-Host has stopped");
 
 	m_modem->close();
 	delete m_modem;
