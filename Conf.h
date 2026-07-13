@@ -173,6 +173,11 @@ public:
 	unsigned int getDMRModeHang() const;
 	DMR_OVCM     getDMROVCM() const;
 	bool         getDMRProtect() const;
+	bool         getDMRTrunkingEnabled() const;
+	bool         getDMRControlChannel() const;
+	bool         getDMRControlChannelAlternateSlot() const;
+	unsigned int getDMRSystemCode() const;
+	bool         getDMRRegistrationRequired() const;
 #endif
 
 #if defined(USE_YSF)
@@ -468,6 +473,11 @@ private:
 #if defined(USE_DMR)
 	DMR_OVCM     m_dmrOVCM;
 	bool         m_dmrProtect;
+	bool         m_dmrTrunkingEnabled;
+	bool         m_dmrControlChannel;
+	bool         m_dmrControlChannelAlternateSlot;
+	unsigned int m_dmrSystemCode;
+	bool         m_dmrRegistrationRequired;
 #endif
 
 #if defined(USE_YSF)

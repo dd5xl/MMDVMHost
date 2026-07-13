@@ -123,14 +123,29 @@ void CDMRNetwork::enable(bool enabled)
 	m_enabled = enabled;
 }
 
-bool CDMRNetwork::read(CDMRData& data)
+bool CDMRNetwork::read(CDMRData& data, TrunkingCommandParameters& command)
 {
 	if (m_rxData.isEmpty())
 		return false;
 
+	command.trunkingParams = false;
+
 	unsigned char length = 0U;
 	m_rxData.getData(&length, 1U);
 	m_rxData.getData(m_buffer, length);
+
+	if (::memcmp(m_buffer, "DMRT", 4U) == 0) {
+		unsigned int command_type = (unsigned int)m_buffer[4U];
+
+		if (command_type == DMRCommand::ChannelEnableDisable)
+			command.channelEnable = ((m_buffer[5U] & 0x01U) == 0x01U);
+
+		command.slot           = (m_buffer[5U] & 0x80U) == 0x80U ? 2U : 1U;
+		command.commandType    = command_type;
+		command.trunkingParams = true;
+
+		return true;
+	}
 
 	// Is this a data packet?
 	if (::memcmp(m_buffer, "DMRD", 4U) != 0)
@@ -289,7 +304,7 @@ bool CDMRNetwork::isConnected() const
 	return (m_addrLen != 0);
 }
 
-void CDMRNetwork::close(bool sayGoodbye)
+void CDMRNetwork::close()
 {
 	LogMessage("DMR, Closing DMR Network");
 
@@ -318,7 +333,7 @@ void CDMRNetwork::clock(unsigned int ms)
 	if (m_debug)
 		CUtils::dump(1U, "DMR Network Received", m_buffer, length);
 
-	if (::memcmp(m_buffer, "DMRD", 4U) == 0) {
+	if ((::memcmp(m_buffer, "DMRD", 4U) == 0) || (::memcmp(m_buffer, "DMRT", 4U) == 0)) {
 		if (m_enabled) {
 			unsigned char len = length;
 			m_rxData.addData(&len, 1U);
@@ -447,4 +462,3 @@ bool CDMRNetwork::write(const unsigned char* data, unsigned int length)
 }
 
 #endif
-

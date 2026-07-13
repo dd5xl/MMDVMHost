@@ -627,6 +627,12 @@ int CMMDVMHost::run()
 		DMR_OVCM ovcm               = m_conf.getDMROVCM();
 		bool protect                = m_conf.getDMRProtect();
 
+		bool trunking               = m_conf.getDMRTrunkingEnabled();
+		bool controlChannel         = m_conf.getDMRControlChannel();
+		unsigned int systemCode     = m_conf.getDMRSystemCode();
+		bool registrationRequired   = m_conf.getDMRRegistrationRequired();
+		bool alternateSlot          = m_conf.getDMRControlChannelAlternateSlot();
+
 		if (txHang > m_dmrRFModeHang)
 			txHang = m_dmrRFModeHang;
 
@@ -672,6 +678,16 @@ int CMMDVMHost::run()
 		if (protect)
 			LogInfo("    Protect: yes");
 
+		if (trunking) {
+			LogInfo("    Trunking: yes");
+			LogInfo("    Control Channel: %s", controlChannel ? "yes" : "no");
+			LogInfo("    System Code: %u", systemCode);
+			LogInfo("    Registration Required: %s", registrationRequired ? "yes" : "no");
+			LogInfo("    Alternate Slot: %s", alternateSlot ? "yes" : "no");
+		} else {
+			LogInfo("    Trunking: no");
+		}
+
 		switch (dmrBeacons) {
 			case DMR_BEACONS::NETWORK: {
 					unsigned int dmrBeaconDuration = m_conf.getDMRBeaconDuration();
@@ -704,6 +720,16 @@ int CMMDVMHost::run()
 		m_dmr = new CDMRControl(id, colorCode, callHang, selfOnly, embeddedLCOnly, dumpTAData, prefixes, blackList, whiteList, slot1TGWhiteList, slot2TGWhiteList, m_timeout, m_modem, m_dmrNetwork, m_duplex, m_dmrLookup, rssi, jitter, ovcm, protect);
 
 		m_dmrTXTimer.setTimeout(txHang);
+
+		// Tier III options
+		if (trunking) {
+			m_modem->setDMRShortLC(systemCode, controlChannel, registrationRequired);
+
+			setMode(MODE_DMR);
+
+			if (controlChannel)
+				m_modem->writeDMRAloha(systemCode, registrationRequired, alternateSlot);
+		}
 	}
 #endif
 
@@ -813,7 +839,8 @@ int CMMDVMHost::run()
 	if (remoteControlEnabled)
 		m_remoteControl = new CRemoteControl(this, m_mqtt);
 
-	setMode(MODE_IDLE);
+	if (!m_conf.getDMRTrunkingEnabled())
+		setMode(MODE_IDLE);
 
 	while (!m_killed) {
 		bool lockout = m_modem->hasLockout();
@@ -895,7 +922,7 @@ int CMMDVMHost::run()
 			if (m_mode == MODE_IDLE) {
 				if (m_duplex) {
 					bool ret = m_dmr->processWakeup(data);
-					if (ret) {
+					if (ret || m_conf.getDMRTrunkingEnabled()) {
 						m_modeTimer.setTimeout(m_dmrRFModeHang);
 						setMode(MODE_DMR);
 						dmrBeaconDurationTimer.stop();
@@ -909,7 +936,7 @@ int CMMDVMHost::run()
 			} else if (m_mode == MODE_DMR) {
 				if (m_duplex && !m_modem->hasTX()) {
 					bool ret = m_dmr->processWakeup(data);
-					if (ret) {
+					if (ret || m_conf.getDMRTrunkingEnabled()) {
 						m_modem->writeDMRStart(true);
 						m_dmrTXTimer.start();
 					}
@@ -1008,7 +1035,7 @@ int CMMDVMHost::run()
 		if (transparentSocket != nullptr && len > 0U)
 			transparentSocket->write(data, len, transparentAddress, transparentAddrLen);
 
-		if (!m_fixedMode) {
+		if (!m_fixedMode && !m_conf.getDMRTrunkingEnabled()) {
 			if (m_modeTimer.isRunning() && m_modeTimer.hasExpired())
 				setMode(MODE_IDLE);
 		}
@@ -1341,14 +1368,19 @@ int CMMDVMHost::run()
 
 		dmrBeaconDurationTimer.clock(ms);
 		if (dmrBeaconDurationTimer.isRunning() && dmrBeaconDurationTimer.hasExpired()) {
-			if (!m_fixedMode)
+			if (!m_fixedMode && !m_conf.getDMRTrunkingEnabled())
 				setMode(MODE_IDLE);
 			dmrBeaconDurationTimer.stop();
 		}
 
 		m_dmrTXTimer.clock(ms);
 		if (m_dmrTXTimer.isRunning() && m_dmrTXTimer.hasExpired()) {
-			m_modem->writeDMRStart(false);
+			if (m_conf.getDMRTrunkingEnabled()) {
+				if (!m_conf.getDMRControlChannel())
+					m_modem->writeDMRStart(false);
+			} else {
+				m_modem->writeDMRStart(false);
+			}
 			m_dmrTXTimer.stop();
 		}
 #endif
@@ -1392,7 +1424,7 @@ int CMMDVMHost::run()
 
 #if defined(USE_DMR)
 	if (m_dmrNetwork != nullptr) {
-		m_dmrNetwork->close(true);
+		m_dmrNetwork->close();
 		delete m_dmrNetwork;
 	}
 #endif
@@ -1542,6 +1574,8 @@ bool CMMDVMHost::createModem()
 	bool debug                   = m_conf.getModemDebug();
 #if defined(USE_DMR)
 	unsigned int colorCode       = m_conf.getDMRColorCode();
+	bool trunking                = m_conf.getDMRTrunkingEnabled();
+	bool controlChannel          = m_conf.getDMRControlChannel();
 #endif
 #if defined(USE_YSF)
 	bool lowDeviation            = m_conf.getFusionLowDeviation();
@@ -1647,6 +1681,8 @@ bool CMMDVMHost::createModem()
 	m_modem->setRFParams(rxFrequency, rxOffset, txFrequency, txOffset, txDCOffset, rxDCOffset, rfLevel, pocsagFrequency);
 #if defined(USE_DMR)
 	m_modem->setDMRParams(colorCode);
+	if (trunking)
+		m_modem->setDMRTrunkingParams(controlChannel);
 #endif
 #if defined(USE_YSF)
 	m_modem->setYSFParams(lowDeviation, ysfTXHang);
