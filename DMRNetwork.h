@@ -34,7 +34,7 @@
 class CDMRNetwork
 {
 public:
-	CDMRNetwork(const std::string& gatewayAddress, unsigned short gatewayPort, const std::string& localAddress, unsigned short localPort, unsigned int id, bool duplex, const char* version, bool slot1, bool slot2, bool debug);
+	CDMRNetwork(const std::string& gatewayAddress, unsigned short gatewayPort, const std::string& localAddress, unsigned short localPort, unsigned int id, bool duplex, bool slot1, bool slot2, bool debug);
 	~CDMRNetwork();
 
 	bool open();

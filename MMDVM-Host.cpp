@@ -1850,8 +1850,8 @@ bool CMMDVMHost::createDMRNetwork()
 	LogInfo("    Slot 2: %s", slot2 ? "enabled" : "disabled");
 	LogInfo("    Mode Hang: %us", m_dmrNetModeHang);
 
-	m_dmrNetwork = new CDMRNetwork(gatewayAddress, gatewayPort, localAddress, localPort, id, m_duplex, VERSION, slot1, slot2, debug);
-
+	m_dmrNetwork = new CDMRNetwork(gatewayAddress, gatewayPort, localAddress, localPort, id, m_duplex, slot1, slot2, debug);
+	
 	bool ret = m_dmrNetwork->open();
 	if (!ret) {
 		delete m_dmrNetwork;
